@@ -3,12 +3,9 @@ package com.lnebukin.gallery;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.BitmapRegionDecoder;
-import android.graphics.BitmapShader;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.graphics.Rect;
 import android.graphics.drawable.BitmapDrawable;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
@@ -16,6 +13,7 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.Toast;
 
 import com.google.android.gms.common.data.BitmapTeleporter;
 import com.google.android.gms.tasks.OnCompleteListener;
@@ -24,10 +22,9 @@ import com.google.firebase.ml.vision.FirebaseVision;
 import com.google.firebase.ml.vision.common.FirebaseVisionImage;
 import com.google.firebase.ml.vision.face.FirebaseVisionFace;
 import com.google.firebase.ml.vision.face.FirebaseVisionFaceDetector;
-
-import java.io.Serializable;
-import java.util.Iterator;
 import java.util.List;
+
+import uk.co.senab.photoview.PhotoView;
 
 public class Photo_FullSize extends AppCompatActivity {
     @Override
@@ -35,19 +32,15 @@ public class Photo_FullSize extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_photo__full_size);
         String path = this.getIntent().getBundleExtra("key").getString("num");
-        ImageView imageView = new ImageView(this);
-        imageView.setImageBitmap(BitmapFactory.decodeFile(path));
-        imageView.setId(1);
-        LinearLayout linearLayout = (LinearLayout) findViewById(R.id.myLinearLayout);
-        linearLayout.addView(imageView);
+        PhotoView img = findViewById(R.id.myImage);
+        img.setImageBitmap(BitmapFactory.decodeFile(path));
     }
 
     public void onDetectClick(View view)
     {
         FirebaseVisionFaceDetector detector = FirebaseVision.getInstance().getVisionFaceDetector();
-        LinearLayout imageView = findViewById(R.id.myLinearLayout);
-        final ImageView im = imageView.findViewById(1);
-        BitmapDrawable drawable = (BitmapDrawable) im.getDrawable();
+        final ImageView imageView = findViewById(R.id.myImage);
+        BitmapDrawable drawable = (BitmapDrawable) imageView.getDrawable();
         final Bitmap bitmap = drawable.getBitmap();
 
         detector.detectInImage(FirebaseVisionImage.fromBitmap(bitmap)).addOnCompleteListener(new OnCompleteListener<List<FirebaseVisionFace>>() {
@@ -62,7 +55,11 @@ public class Photo_FullSize extends AppCompatActivity {
                     for (FirebaseVisionFace it : face) {
                         canvas.drawRect(it.getBoundingBox(), paint);
                     }
-                    im.setImageBitmap(markedBitMAp);
+                    imageView.setImageBitmap(markedBitMAp);
+                    if (face.size() == 0) {
+                        Toast toast = Toast.makeText(Photo_FullSize.this, "Face not found", Toast.LENGTH_LONG);
+                        toast.show();
+                    }
                 }
             }
         });

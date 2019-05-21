@@ -1,1 +1,1 @@
-# gallery-with-sort-face-on-Android
+# Gallery-with-Sort-faces-on-Android

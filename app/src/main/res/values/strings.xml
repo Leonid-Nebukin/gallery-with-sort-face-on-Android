@@ -1,4 +1,11 @@
 <resources>
     <string name="app_name">gallery</string>
     <string name="tableView">tableView</string>
+    <string name="sort_by_name">sort by name</string>
+    <string name="sort_by_date">sort by date</string>
+    <string name="sort_by_face">sort by face</string>
+    <string name="item3">item3</string>
+    <string name="item">item</string>
+    <string name="sort_by_faces">Sort by faces</string>
+    <string name="detect_faces">Detect Faces</string>
 </resources>
