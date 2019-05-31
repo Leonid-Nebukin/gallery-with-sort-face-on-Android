@@ -8,4 +8,6 @@
     <string name="item">item</string>
     <string name="sort_by_faces">Sort by faces</string>
     <string name="detect_faces">Detect Faces</string>
+    <string name="face">face</string>
+    <string name="info">information</string>
 </resources>

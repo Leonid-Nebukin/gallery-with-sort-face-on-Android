@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/relat"
     android:layout_width="match_parent"
@@ -8,15 +8,19 @@
     android:orientation="vertical"
     tools:context=".Photo_FullSize">
 
-    <Button
-        android:id="@+id/detect_f"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/detect_faces"
-        android:onClick="onDetectClick"
-        />
     <uk.co.senab.photoview.PhotoView
         android:id="@+id/myImage"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"/>
-</LinearLayout>
+        android:layout_height="match_parent"
+        android:layout_centerInParent="true"
+        android:transitionName="TransitionName" />
+
+    <fragment
+        android:id="@+id/fragment"
+        android:name="com.lnebukin.gallery.FragmBut"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        tools:layout="@layout/fragment_button" />
+</RelativeLayout>

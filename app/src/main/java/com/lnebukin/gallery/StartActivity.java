@@ -1,9 +1,11 @@
 package com.lnebukin.gallery;
 
 import android.Manifest;
+import android.app.ActivityOptions;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -22,6 +24,7 @@ import android.util.Pair;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.animation.Animation;
 import android.view.animation.AnimationSet;
 import android.view.animation.AnimationUtils;
@@ -52,8 +55,12 @@ import com.searchPicture.SearchPicture;
 import org.tensorflow.Server;
 
 import java.io.File;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
 
 public class StartActivity extends AppCompatActivity {
@@ -63,10 +70,14 @@ public class StartActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         checkPermissions();
+
+
         setContentView(R.layout.activity_start);
 
         Toolbar toolbar = findViewById(R.id.toolbar);
+        toolbar.setTitle("");
         setSupportActionBar(toolbar);
+
 
 
         SearchPicture searchPicture = new SearchPicture();
@@ -79,60 +90,33 @@ public class StartActivity extends AppCompatActivity {
         View.OnClickListener oclImageOk = new View.OnClickListener() {//TODO init listener in Tablelayout
             @Override
             public void onClick(View v) {
+                v.setTransitionName("TransitionName");
                 int pos = v.getId();
-                final Intent intent = new Intent(StartActivity.this, Photo_FullSize.class);
+                ImageView imageView = findViewById(pos);
+                //imageView.setTransitionName("TransitionName");
+                //imageView.setImageBitmap(BitmapFactory.decodeFile(myPicMass.get(pos).getMyPath()));
+
+
+                Intent intent = new Intent(StartActivity.this, Photo_FullSize.class);
+
+                Pair[] pairs = new Pair[1];
+
+                pairs[0] = new Pair<View, String> (v, "TransitionName");
+
                 Bundle bundle = new Bundle();
                 bundle.putString("num", myPicMass.get(pos).getMyPath());
                 intent.putExtra("key", bundle);
-                moveViewToScreenCenter(v);
 
-                Thread t1 = new Thread() {
-                    @Override
-                    public void run() {
-                        super.run();
-                        try {
-                            Thread.sleep(500);
-                            startActivity(intent);
-                        } catch (Exception ex) {
+                //ActivityOptions options = ActivityOptions.makeSceneTransitionAnimation(StartActivity.this, pairs);
 
-                        }
-                    }
-                };
-                t1.start();
+                startActivity(intent/*, options.toBundle()*/);
+
             }
         };
 
         GridView gridView = (GridView) findViewById(R.id.gridView);
         gridView.setAdapter(new PictureAdapter(this, myPicMass, oclImageOk, widthCeil - 10));
 
-
-    }
-
-    private void moveViewToScreenCenter( View view )
-    {
-        RelativeLayout root = findViewById(R.id.myRelative );
-        DisplayMetrics dm = new DisplayMetrics();
-        this.getWindowManager().getDefaultDisplay().getMetrics( dm );
-        int statusBarOffset = dm.heightPixels - root.getMeasuredHeight();
-
-        int originalPos[] = new int[2];
-        view.getLocationOnScreen( originalPos );
-        float scale = dm.widthPixels / view.getWidth();
-
-        int xDest = dm.widthPixels/2;
-        xDest -= (view.getMeasuredWidth()/2);
-        int yDest = dm.heightPixels/2 - (view.getMeasuredHeight()/2) - statusBarOffset;
-
-        AnimationSet animationSet = new AnimationSet(true);
-        ScaleAnimation scaleAnimation = new ScaleAnimation(1f, scale, 1f, scale, view.getWidth() / 2, view.getHeight() / 2);
-
-        TranslateAnimation anim = new TranslateAnimation(0 ,  (xDest - originalPos[0]) / scale , 0, (yDest - originalPos[1]) / scale);
-        animationSet.setDuration(500);
-        anim.setFillAfter( true );
-        scaleAnimation.setFillAfter( true );
-        animationSet.addAnimation(anim);
-        animationSet.addAnimation(scaleAnimation);
-        view.startAnimation(animationSet);
 
     }
 
@@ -146,8 +130,43 @@ public class StartActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         if(item.getItemId() == R.id.sort_by_face) {
             onSortFaceClick(myPicMass);
+        } else if (item.getItemId() == R.id.sort_by_name) {
+            onSortNameClick(myPicMass);
+        } else if (item.getItemId() == R.id.sort_by_date) {
+            onSortDateClick(myPicMass);
         }
         return true;
+    }
+
+    private void onSortNameClick(ArrayList<Picture> aPicMass) {
+        Collections.sort(aPicMass, new Comparator<Picture>() {
+            public int compare(Picture o1, Picture o2) {
+                return o1.getMyPath().compareTo(o2.getMyPath());
+            }
+        });
+        for (int i = 0; i < aPicMass.size(); i ++) {
+            ImageView imageView = (ImageView) findViewById(i);
+            imageView.setImageBitmap(aPicMass.get(i).getMyImage());
+
+            aPicMass.get(i).setIdImageView(i);
+        }
+    }
+
+    private void onSortDateClick (ArrayList<Picture> aPicMass) {
+        Collections.sort(aPicMass, new Comparator<Picture>() {
+            public int compare(Picture o1, Picture o2) {
+                File file1 = new File(o1.getMyPath());
+                File file2 = new File(o2.getMyPath());
+
+                return Long.compare(file1.lastModified(), file2.lastModified());
+            }
+        });
+        for (int i = 0; i < aPicMass.size(); i ++) {
+            ImageView imageView = (ImageView) findViewById(i);
+            imageView.setImageBitmap(aPicMass.get(i).getMyImage());
+
+            aPicMass.get(i).setIdImageView(i);
+        }
     }
 
     private void onSortFaceClick(final ArrayList<Picture> aPicMass) {

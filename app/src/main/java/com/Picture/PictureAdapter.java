@@ -51,6 +51,8 @@ public class PictureAdapter extends BaseAdapter {
     public View getView(int i, View view, ViewGroup viewGroup) {
         ImageView imageView = new ImageView(myContext);
         imageView.setImageBitmap(myPic.get(i).getMyImage());
+        imageView.setMaxHeight(width);
+        imageView.setMaxWidth(width);
         imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
         imageView.setLayoutParams(new GridView.LayoutParams(width, width));
         imageView.setOnClickListener(myImageButton);

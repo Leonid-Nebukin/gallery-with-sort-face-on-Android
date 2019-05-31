@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/face_detect"
+        android:title="@string/face"
+        app:showAsAction="always" />
+    <item
+        android:id="@+id/infomation"
+        android:title="@string/info"
+        android:icon="@android:drawable/ic_menu_info_details"
+        app:showAsAction="always" />
+</menu>
