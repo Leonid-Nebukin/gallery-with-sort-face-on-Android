@@ -19,15 +19,19 @@ public class PictureHelp {
     public PictureHelp () {
     }
 
-    public Bitmap decodeScaledFile(File f, int width) {
+    public Bitmap decodeScaledFile(String f, int width) {
 
-        Bitmap bitmap = BitmapFactory.decodeFile(f.getPath());
+        Bitmap bitmap = BitmapFactory.decodeFile(f);
 
         if (bitmap.getHeight() < bitmap.getWidth()) {
             double k = bitmap.getHeight() / width;
             bitmap = Bitmap.createScaledBitmap(bitmap, (int) (bitmap.getWidth() / k), width, false);
         } else {
             double k = bitmap.getWidth() / width;
+            if ( k == 0 || bitmap == null) {
+                k = 1;
+            }
+
             bitmap = Bitmap.createScaledBitmap(bitmap, width, (int) (bitmap.getHeight() / k), false);
         }
 
@@ -46,7 +50,7 @@ public class PictureHelp {
             int j = 0;
             for (j = 0; j < Sorted.size(); j++) {
                 double compare = comparePicture(embiddingMass.get(k), Sorted.get(j).get(0).second);
-                if (compare < 1.0) {
+                if (compare < 0.484) {
                     push (embiddingMass.get(k), bitK, Sorted, j, k);
                     break;
                 }
@@ -63,7 +67,7 @@ public class PictureHelp {
     private double comparePicture(float[] ff1, float[] ff2) {
         double diff = 0;
         //compare picture using L2
-        for (int i = 0; i < 512; i++) {
+        for (int i = 0; i < 128; i++) {
             diff+=(ff1[i]-ff2[i])*(ff1[i]-ff2[i]);
         }
         return Math.sqrt(diff);

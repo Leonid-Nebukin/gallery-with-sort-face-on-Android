@@ -8,6 +8,11 @@ xmlns:app="http://schemas.android.com/apk/res-auto">
         android:title="@string/item"
         app:showAsAction="ifRoom" />
     <item
+        android:id="@+id/camera"
+        android:icon="@android:drawable/ic_menu_camera"
+        android:title="@string/camera"
+        app:showAsAction="ifRoom" />
+    <item
         android:id="@+id/sort_by_face"
         android:title="@string/sort_by_face"
         app:showAsAction="never" />

@@ -1,86 +1,86 @@
 package com.searchPicture;
 
+import android.content.res.AssetFileDescriptor;
 import android.content.res.AssetManager;
 import android.graphics.Bitmap;
-import android.graphics.Matrix;
-import android.util.Log;
 
-import org.tensorflow.contrib.android.TensorFlowInferenceInterface;
+import org.tensorflow.lite.Interpreter;
+
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.MappedByteBuffer;
+import java.nio.channels.FileChannel;
 
 public class Facenet {
-    private static final String MODEL_FILE  = "file:///android_asset/20180402-114759.pb";
-    private static final String INPUT_NAME  = "input:0";
-    private static final String OUTPUT_NAME = "embeddings:0";
-    private static final String PHASE_NAME  = "phase_train:0";
-    private static final String[] outputNames = new String[] {OUTPUT_NAME};
+    private static final String MODEL_PATH  = "my_facenet.tflite";
+    private static final boolean QUANT = true;
     private static final int INPUT_SIZE=160;
-    private static final int SIZE = 512;
-    private float[] floatValues;
-    private int[] intValues;
-    private TensorFlowInferenceInterface tensorFlowInferenceInterface;
+    private static final int SIZE = 128;
+    private Interpreter interpreter;
+    private static final int BATCH_SIZE = 1;
+    private static final int PIXEL_SIZE = 3;
+    private static final int IMAGE_MEAN = 128;
+    private static final float IMAGE_STD = 128.0f;
 
     public Facenet(AssetManager assetManager){
-        loadModel(assetManager);
-        floatValues=new float[INPUT_SIZE*INPUT_SIZE*3];
-        intValues = new int[INPUT_SIZE * INPUT_SIZE];
-    }
-
-    private void loadModel(AssetManager assetManager){
         try {
-            tensorFlowInferenceInterface = new TensorFlowInferenceInterface(assetManager, MODEL_FILE);
-        }catch(Exception e){
-            Log.e("Facenetd", "Facenet load error\n");
+            interpreter = new Interpreter(loadModel(assetManager, MODEL_PATH), new Interpreter.Options());
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
-    //Bitmap to floatValues
-    private int normalizeImage(Bitmap bitmap){
+    private MappedByteBuffer loadModel(AssetManager assetManager, String modelPath) throws IOException {
+        AssetFileDescriptor fileDescriptor = assetManager.openFd(modelPath);
+        FileInputStream inputStream = new FileInputStream(fileDescriptor.getFileDescriptor());
+        FileChannel fileChannel = inputStream.getChannel();
+        long startOffset = fileDescriptor.getStartOffset();
+        long declaredLength = fileDescriptor.getDeclaredLength();
+        return fileChannel.map(FileChannel.MapMode.READ_ONLY, startOffset, declaredLength);
+    }
 
-        float scale_width=((float)INPUT_SIZE)/bitmap.getWidth();
-        float scale_height=((float)INPUT_SIZE)/bitmap.getHeight();
-        Matrix matrix = new Matrix();
-        matrix.postScale(scale_width,scale_height);
-        bitmap = Bitmap.createBitmap(bitmap,0,0,bitmap.getWidth(),bitmap.getHeight(),matrix,true);
+    private ByteBuffer convertBitmapToByteBuffer(Bitmap bitmap) {
+        ByteBuffer byteBuffer;
 
-        float imageMean=127.5f;
-        float imageStd=128;
-        bitmap.getPixels(intValues,0,bitmap.getWidth(),0,0,bitmap.getWidth(),bitmap.getHeight());
-        for (int i=0;i<intValues.length;i++){
-            final int val=intValues[i];
-            floatValues[i * 3 + 0] = (((val >> 16) & 0xFF) - imageMean) / imageStd;
-            floatValues[i * 3 + 1] = (((val >> 8) & 0xFF) - imageMean) / imageStd;
-            floatValues[i * 3 + 2] = ((val & 0xFF) - imageMean) / imageStd;
+        if(QUANT) {
+            byteBuffer = ByteBuffer.allocateDirect(BATCH_SIZE * INPUT_SIZE * INPUT_SIZE * PIXEL_SIZE);
+        } else {
+            byteBuffer = ByteBuffer.allocateDirect(4 * BATCH_SIZE * INPUT_SIZE * INPUT_SIZE * PIXEL_SIZE);
         }
 
-        return 0;
+        byteBuffer.order(ByteOrder.nativeOrder());
+        int[] intValues = new int[INPUT_SIZE * INPUT_SIZE];
+        bitmap.getPixels(intValues, 0, bitmap.getWidth(), 0, 0, bitmap.getWidth(), bitmap.getHeight());
+        int pixel = 0;
+        for (int i = 0; i < INPUT_SIZE; ++i) {
+            for (int j = 0; j < INPUT_SIZE; ++j) {
+                final int val = intValues[pixel++];
+                if(QUANT){
+                    byteBuffer.put((byte) ((val >> 16) & 0xFF));
+                    byteBuffer.put((byte) ((val >> 8) & 0xFF));
+                    byteBuffer.put((byte) (val & 0xFF));
+                } else {
+                    byteBuffer.putFloat((((val >> 16) & 0xFF)-IMAGE_MEAN)/IMAGE_STD);
+                    byteBuffer.putFloat((((val >> 8) & 0xFF)-IMAGE_MEAN)/IMAGE_STD);
+                    byteBuffer.putFloat((((val) & 0xFF)-IMAGE_MEAN)/IMAGE_STD);
+                }
+
+            }
+        }
+        return byteBuffer;
     }
+
     public float[] recognizeImage(final Bitmap bitmap){
-        normalizeImage(bitmap);
-
-        try {
-            tensorFlowInferenceInterface.feed(INPUT_NAME, floatValues, 1, INPUT_SIZE, INPUT_SIZE, 3);
-            boolean[] phase=new boolean[1];
-            phase[0] = false;
-            tensorFlowInferenceInterface.feed(PHASE_NAME,phase);
-        }catch (Exception e){
-            Log.e("Facenet","Facenet feed Error\n"+e);
-            return null;
+        ByteBuffer byteBuffer = convertBitmapToByteBuffer(bitmap);
+        byte[][] faceFeature = new byte[1][SIZE];
+        interpreter.run(byteBuffer, faceFeature);
+        float[] face = new float[SIZE];
+        for (int i = 0; i < faceFeature[0].length; ++i) {
+            face[i] = (faceFeature[0][i] & 0xff) / 255.0f;
         }
 
-        try {
-            tensorFlowInferenceInterface.run(outputNames, false);
-        }catch (Exception e){
-            Log.e("Facenet","Facenet run error\n"+e);
-            return null;
-        }
-
-        float[] faceFeature=new float[SIZE];
-        try {
-            tensorFlowInferenceInterface.fetch(OUTPUT_NAME, faceFeature);
-        }catch (Exception e){
-            Log.e("Facenet","Facenet fetch error\n"+e);
-            return null;
-        }
-        return faceFeature;
+        return face;
     }
 }

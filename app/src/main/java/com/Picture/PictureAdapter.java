@@ -28,8 +28,14 @@ public class PictureAdapter extends BaseAdapter {
         this.width = width;
     }
 
+
+
     public ArrayList<Picture> getMyPic() {
         return myPic;
+    }
+
+    public void addNewValues(Picture thePicture){
+        this.myPic.add(thePicture);
     }
 
     @Override

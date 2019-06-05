@@ -6,7 +6,7 @@
     android:layout_height="match_parent"
     android:animateLayoutChanges="true"
 
-    tools:context=".StartActivity"
+    tools:context="com.lnebukin.gallery.StartActivity"
     android:id="@+id/myRelative">
 
     <android.support.v7.widget.Toolbar
@@ -18,7 +18,7 @@
     <GridView
         android:id="@+id/gridView"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="wrap_content"
         android:layout_below="@+id/toolbar"
         android:numColumns="5"
         android:horizontalSpacing="10dp"

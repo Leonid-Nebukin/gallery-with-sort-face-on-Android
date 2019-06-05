@@ -1,40 +1,56 @@
 package com.lnebukin.gallery;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
+import android.annotation.TargetApi;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.RectF;
 import android.graphics.drawable.BitmapDrawable;
+import android.os.Build;
 import android.support.annotation.NonNull;
+import android.support.annotation.RequiresApi;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.Toolbar;
+import android.util.SparseArray;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
+import android.widget.GridView;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.Toast;
 
 import com.Picture.Picture;
+import com.Picture.PictureAdapter;
 import com.google.android.gms.common.data.BitmapTeleporter;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
+import com.google.android.gms.vision.Frame;
+import com.google.android.gms.vision.face.Face;
+import com.google.android.gms.vision.face.FaceDetector;
 import com.google.firebase.ml.vision.FirebaseVision;
 import com.google.firebase.ml.vision.common.FirebaseVisionImage;
 import com.google.firebase.ml.vision.face.FirebaseVisionFace;
 import com.google.firebase.ml.vision.face.FirebaseVisionFaceDetector;
 
 import java.io.File;
+import java.io.IOException;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -43,7 +59,6 @@ import java.util.List;
 import uk.co.senab.photoview.PhotoView;
 
 public class Photo_FullSize extends AppCompatActivity implements FragmBut.OnSelectedButtonListener {
-    @SuppressLint("ClickableViewAccessibility")
     Picture picture;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,22 +71,6 @@ public class Photo_FullSize extends AppCompatActivity implements FragmBut.OnSele
         img.setImageBitmap(bitmap);
         picture = new Picture (path, bitmap);
 
-    }
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.toolbar_full_size, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        if(item.getItemId() == R.id.face_detect) {
-            onDetectClick();
-        } else if (item.getItemId() == R.id.infomation) {
-            info();
-        }
-        return true;
     }
 
     private void info() {
@@ -95,12 +94,41 @@ public class Photo_FullSize extends AppCompatActivity implements FragmBut.OnSele
     public void onDetectClick()
     {
 
-        FirebaseVisionFaceDetector detector = FirebaseVision.getInstance().getVisionFaceDetector();
         final ImageView imageView = findViewById(R.id.myImage);
         BitmapDrawable drawable = (BitmapDrawable) imageView.getDrawable();
         final Bitmap bitmap = drawable.getBitmap();
 
-        detector.detectInImage(FirebaseVisionImage.fromBitmap(bitmap)).addOnCompleteListener(new OnCompleteListener<List<FirebaseVisionFace>>() {
+        //
+
+        Paint myRectPaint = new Paint();
+        myRectPaint.setStrokeWidth(5);
+        myRectPaint.setColor(Color.BLUE);
+        myRectPaint.setStyle(Paint.Style.STROKE);
+
+        Bitmap tempBitmap = Bitmap.createBitmap(bitmap.getWidth(), bitmap.getHeight(), Bitmap.Config.RGB_565);
+        Canvas tempCanvas = new Canvas(tempBitmap);
+        tempCanvas.drawBitmap(bitmap, 0, 0, null);
+
+
+
+        FaceDetector faceDetector = new FaceDetector.Builder(getApplicationContext()).setTrackingEnabled(false).build();
+
+        Frame frame = new Frame.Builder().setBitmap(bitmap).build();
+        SparseArray<Face> faces = faceDetector.detect(frame);
+
+        for(int i=0; i<faces.size(); i++) {
+            Face thisFace = faces.valueAt(i);
+            float x1 = thisFace.getPosition().x;
+            float y1 = thisFace.getPosition().y;
+            float x2 = x1 + thisFace.getWidth();
+            float y2 = y1 + thisFace.getHeight();
+            tempCanvas.drawRoundRect(new RectF(x1, y1, x2, y2), 2, 2, myRectPaint);
+        }
+        //imageView.setImageDrawable(new BitmapDrawable(getResources(),tempBitmap));
+
+
+        FirebaseVisionFaceDetector detector1 = FirebaseVision.getInstance().getVisionFaceDetector();
+        detector1.detectInImage(FirebaseVisionImage.fromBitmap(bitmap)).addOnCompleteListener(new OnCompleteListener<List<FirebaseVisionFace>>() {
             @Override
             public void onComplete(@NonNull Task<List<FirebaseVisionFace>> task) {
                 if (task.isSuccessful()) {
@@ -122,12 +150,26 @@ public class Photo_FullSize extends AppCompatActivity implements FragmBut.OnSele
         });
     }
 
+    private void delete () {
+        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
+        try {
+            File file = new File(picture.getMyPath());
+            file.delete();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        Intent intent = new Intent(Photo_FullSize.this, StartActivity.class);
+        startActivity(intent);
+    }
+
     @Override
     public void onButtonSelected(int buttonIndex) {
         if (buttonIndex == 1) {
             onDetectClick();
         } else if (buttonIndex == 2) {
             info();
+        } else if (buttonIndex == 3) {
+            delete();
         }
     }
 }

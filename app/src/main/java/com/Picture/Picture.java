@@ -1,7 +1,6 @@
 package com.Picture;
 
 import android.graphics.Bitmap;
-import android.widget.ImageView;
 
 public class Picture {
     private String myPath;
