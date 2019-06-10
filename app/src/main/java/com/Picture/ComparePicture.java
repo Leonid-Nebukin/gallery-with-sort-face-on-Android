@@ -3,30 +3,27 @@ package com.Picture;
 import android.content.res.AssetManager;
 import android.graphics.Bitmap;
 import android.util.Pair;
-import android.widget.ImageView;
-import android.widget.TextView;
 
-import com.lnebukin.gallery.R;
-import com.searchPicture.Facenet;
+import com.FaceRecognition.Facenet;
 
 import java.util.ArrayList;
 
 public class ComparePicture {
-    private ArrayList<ArrayList<Pair<Integer, float[]>>> compare;
+    private ArrayList<ArrayList<Pair<Integer, Float[]>>> compare;
 
     public ComparePicture (final ArrayList<Bitmap> Faces, ArrayList<Picture> thePictures, AssetManager assetManager) {
-        ArrayList<float[]> embidingVecMass = getEmbidingVecMass(Faces, assetManager);
+        ArrayList<Float[]> embidingVecMass = getEmbidingVecMass(Faces, assetManager);
 
         PictureHelp pictureHelp = new PictureHelp();
-        compare = pictureHelp.sorted(thePictures, embidingVecMass);
+        //.compare = pictureHelp.sorted(thePictures);
 
     }
-    public ArrayList<float[]> getEmbidingVecMass (final ArrayList<Bitmap> Photos, final AssetManager assetManager) {
+    public ArrayList<Float[]> getEmbidingVecMass (final ArrayList<Bitmap> Photos, final AssetManager assetManager) {
 
-        final ArrayList<float[]> ff2 = new ArrayList<>();
-        final ArrayList<float[]> ff1 = new ArrayList<>();
-        final ArrayList<float[]> ff3 = new ArrayList<>();
-        final ArrayList<float[]> ff4 = new ArrayList<>();
+        final ArrayList<Float[]> ff2 = new ArrayList<>();
+        final ArrayList<Float[]> ff1 = new ArrayList<>();
+        final ArrayList<Float[]> ff3 = new ArrayList<>();
+        final ArrayList<Float[]> ff4 = new ArrayList<>();
         Thread t1 = new Thread() {
             @Override
             public void run() {
@@ -84,7 +81,7 @@ public class ComparePicture {
 
         }
 
-        ArrayList<float[]> ff = new ArrayList<>();
+        ArrayList<Float[]> ff = new ArrayList<>();
 
         for (int i = 0; i < ff1.size() || i < ff2.size() /*|| i < ff3.size() || i < ff4.size()*/; i ++) {
             if (i < ff1.size()) {
@@ -104,7 +101,7 @@ public class ComparePicture {
         return ff;
     }
 
-    public ArrayList<ArrayList<Pair<Integer, float[]>>> getCompare () {
+    public ArrayList<ArrayList<Pair<Integer, Float[]>>> getCompare () {
         return compare;
     }
 }

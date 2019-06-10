@@ -3,7 +3,12 @@ package com.lnebukin.gallery;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
+import android.content.ContentResolver;
+import android.content.ContentUris;
+import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
@@ -11,7 +16,9 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
 import android.graphics.drawable.BitmapDrawable;
+import android.net.Uri;
 import android.os.Build;
+import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.annotation.RequiresApi;
 import android.support.v4.app.ActivityCompat;
@@ -32,6 +39,7 @@ import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.Toast;
 
+import com.FaceRecognition.InternalFileBackground;
 import com.Picture.Picture;
 import com.Picture.PictureAdapter;
 import com.google.android.gms.common.data.BitmapTeleporter;
@@ -55,6 +63,7 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Stream;
 
 import uk.co.senab.photoview.PhotoView;
 
@@ -65,7 +74,7 @@ public class Photo_FullSize extends AppCompatActivity implements FragmBut.OnSele
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_photo__full_size);
 
-        String path = this.getIntent().getBundleExtra("key").getString("num");
+        String path = this.getIntent().getExtras().getString("Image");
         PhotoView img = findViewById(R.id.myImage);
         Bitmap bitmap = BitmapFactory.decodeFile(path);
         img.setImageBitmap(bitmap);
@@ -79,7 +88,7 @@ public class Photo_FullSize extends AppCompatActivity implements FragmBut.OnSele
         Date date = new Date(file.lastModified());
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SS");
         String formattedDate = sdf.format(date);
-
+        //convert to Mb
         long size = file.length();
         double size1 = size / 1024;
         size1 = size1 / 1024;
@@ -93,73 +102,70 @@ public class Photo_FullSize extends AppCompatActivity implements FragmBut.OnSele
 
     public void onDetectClick()
     {
-
         final ImageView imageView = findViewById(R.id.myImage);
         BitmapDrawable drawable = (BitmapDrawable) imageView.getDrawable();
         final Bitmap bitmap = drawable.getBitmap();
-
-        //
-
-        Paint myRectPaint = new Paint();
-        myRectPaint.setStrokeWidth(5);
-        myRectPaint.setColor(Color.BLUE);
-        myRectPaint.setStyle(Paint.Style.STROKE);
-
-        Bitmap tempBitmap = Bitmap.createBitmap(bitmap.getWidth(), bitmap.getHeight(), Bitmap.Config.RGB_565);
-        Canvas tempCanvas = new Canvas(tempBitmap);
-        tempCanvas.drawBitmap(bitmap, 0, 0, null);
-
-
-
-        FaceDetector faceDetector = new FaceDetector.Builder(getApplicationContext()).setTrackingEnabled(false).build();
-
-        Frame frame = new Frame.Builder().setBitmap(bitmap).build();
-        SparseArray<Face> faces = faceDetector.detect(frame);
-
-        for(int i=0; i<faces.size(); i++) {
-            Face thisFace = faces.valueAt(i);
-            float x1 = thisFace.getPosition().x;
-            float y1 = thisFace.getPosition().y;
-            float x2 = x1 + thisFace.getWidth();
-            float y2 = y1 + thisFace.getHeight();
-            tempCanvas.drawRoundRect(new RectF(x1, y1, x2, y2), 2, 2, myRectPaint);
-        }
-        //imageView.setImageDrawable(new BitmapDrawable(getResources(),tempBitmap));
-
 
         FirebaseVisionFaceDetector detector1 = FirebaseVision.getInstance().getVisionFaceDetector();
         detector1.detectInImage(FirebaseVisionImage.fromBitmap(bitmap)).addOnCompleteListener(new OnCompleteListener<List<FirebaseVisionFace>>() {
             @Override
             public void onComplete(@NonNull Task<List<FirebaseVisionFace>> task) {
-                if (task.isSuccessful()) {
-                    Bitmap markedBitMAp = (bitmap).copy(Bitmap.Config.ARGB_8888, true);
-                    Canvas canvas = new Canvas(markedBitMAp);
-                    Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-                    paint.setColor(Color.parseColor("#99003399"));
-                    List<FirebaseVisionFace> face = task.getResult();
-                    for (FirebaseVisionFace it : face) {
-                        canvas.drawRect(it.getBoundingBox(), paint);
-                    }
-                    imageView.setImageBitmap(markedBitMAp);
-                    if (face.size() == 0) {
-                        Toast toast = Toast.makeText(Photo_FullSize.this, "Face not found", Toast.LENGTH_LONG);
-                        toast.show();
-                    }
+                Bitmap markedBitMAp = (bitmap).copy(Bitmap.Config.RGB_565, true);
+                Canvas canvas = new Canvas(markedBitMAp);
+                Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+                paint.setStyle(Paint.Style.STROKE);
+                paint.setColor(Color.WHITE);
+                List<FirebaseVisionFace> face = task.getResult();
+                for (FirebaseVisionFace it : face) {
+                    canvas.drawRect(it.getBoundingBox(), paint);
+                }
+                imageView.setImageBitmap(markedBitMAp);
+                if (face.size() == 0) {
+                    Toast toast = Toast.makeText(Photo_FullSize.this, "Face not found", Toast.LENGTH_LONG);
+                    toast.show();
                 }
             }
         });
     }
 
-    private void delete () {
-        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
-        try {
-            File file = new File(picture.getMyPath());
-            file.delete();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        Intent intent = new Intent(Photo_FullSize.this, StartActivity.class);
-        startActivity(intent);
+    private void delete (final Context context) {
+        AlertDialog.Builder ad = new AlertDialog.Builder(context);
+        ad.setMessage("Are you sure?");
+        ad.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int arg1) {
+
+                ActivityCompat.requestPermissions(Photo_FullSize.this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
+
+                String[] projection = { MediaStore.Images.Media._ID };
+                File file = new File(picture.getMyPath());
+
+                String selection = MediaStore.Images.Media.DATA + " = ?";
+                String[] selectionArgs = new String[] { file.getAbsolutePath() };
+
+                Uri queryUri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
+                ContentResolver contentResolver = getContentResolver();
+                Cursor c = contentResolver.query(queryUri, projection, selection, selectionArgs, null);
+                if (c.moveToFirst()) {
+                    long id = c.getLong(c.getColumnIndexOrThrow(MediaStore.Images.Media._ID));
+                    Uri deleteUri = ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id);
+                    contentResolver.delete(deleteUri, null, null);
+                }
+                c.close();
+
+                InternalFileBackground internalFileBackground = new InternalFileBackground("embiding.csv", context);
+                internalFileBackground.DeletePicture(picture.getMyPath());
+
+                Intent intent = new Intent(Photo_FullSize.this, StartActivity.class);
+                startActivity(intent);
+            }
+        });
+        ad.setNegativeButton("No", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int arg1) {
+                dialog.cancel();
+            }
+        });
+        ad.show();
+
     }
 
     @Override
@@ -169,7 +175,7 @@ public class Photo_FullSize extends AppCompatActivity implements FragmBut.OnSele
         } else if (buttonIndex == 2) {
             info();
         } else if (buttonIndex == 3) {
-            delete();
+            delete(this);
         }
     }
 }

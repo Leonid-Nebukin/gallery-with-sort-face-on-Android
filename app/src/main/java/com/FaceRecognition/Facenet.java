@@ -1,4 +1,4 @@
-package com.searchPicture;
+package com.FaceRecognition;
 
 import android.content.res.AssetFileDescriptor;
 import android.content.res.AssetManager;
@@ -72,11 +72,11 @@ public class Facenet {
         return byteBuffer;
     }
 
-    public float[] recognizeImage(final Bitmap bitmap){
+    public Float[] recognizeImage(final Bitmap bitmap){
         ByteBuffer byteBuffer = convertBitmapToByteBuffer(bitmap);
         byte[][] faceFeature = new byte[1][SIZE];
         interpreter.run(byteBuffer, faceFeature);
-        float[] face = new float[SIZE];
+        Float[] face = new Float[SIZE];
         for (int i = 0; i < faceFeature[0].length; ++i) {
             face[i] = (faceFeature[0][i] & 0xff) / 255.0f;
         }

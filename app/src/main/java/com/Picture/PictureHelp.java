@@ -22,49 +22,50 @@ public class PictureHelp {
     public Bitmap decodeScaledFile(String f, int width) {
 
         Bitmap bitmap = BitmapFactory.decodeFile(f);
+        int h = bitmap.getHeight();
+        int w = bitmap.getWidth();
 
         if (bitmap.getHeight() < bitmap.getWidth()) {
-            double k = bitmap.getHeight() / width;
-            bitmap = Bitmap.createScaledBitmap(bitmap, (int) (bitmap.getWidth() / k), width, false);
+
+            bitmap = Bitmap.createBitmap(bitmap, (w - h) / 2, 0, h, h);
         } else {
-            double k = bitmap.getWidth() / width;
-            if ( k == 0 || bitmap == null) {
-                k = 1;
-            }
 
-            bitmap = Bitmap.createScaledBitmap(bitmap, width, (int) (bitmap.getHeight() / k), false);
+            bitmap = Bitmap.createBitmap(bitmap, 0, (h - w) / 2, w, w);
         }
 
-        Bitmap bmHalf = Bitmap.createScaledBitmap(bitmap, width,
-                width, false);
-        return bmHalf;
+        bitmap = Bitmap.createScaledBitmap(bitmap, width, width, false);
+        return bitmap;
     }
 
-    public ArrayList<ArrayList<Pair<Integer, float[]>>> sorted(ArrayList<Picture> thePictures, ArrayList<float[]> embiddingMass) {
-        ArrayList<ArrayList<Pair<Integer, float[]>>> Sorted = new ArrayList<>();
-        Bitmap bitK = thePictures.get(0).getMyImage();
-        push(embiddingMass.get(0), bitK, Sorted, 0, 0);
+    public Pair<ArrayList<ArrayList<Pair<Integer, Integer>>>, ArrayList<Integer>>  sorted (ArrayList<Picture> thePictures) {
+        ArrayList<ArrayList<Pair<Integer, Integer>>> withFaces = new ArrayList<>();
+        ArrayList<Integer> withoutFaces= new ArrayList<>();
 
-        for (int k = 1; k < thePictures.size(); ++k) {
-            bitK = thePictures.get(k).getMyImage();
-            int j = 0;
-            for (j = 0; j < Sorted.size(); j++) {
-                double compare = comparePicture(embiddingMass.get(k), Sorted.get(j).get(0).second);
-                if (compare < 0.484) {
-                    push (embiddingMass.get(k), bitK, Sorted, j, k);
-                    break;
+        for (int indexPicture = 0; indexPicture < thePictures.size(); ++indexPicture) {
+            if (thePictures.get(indexPicture).getNumbFaces() != 0) {
+                for (int indexFace = 0; indexFace < thePictures.get(indexPicture).getNumbFaces(); ++indexFace) {
+                    int indexGroup = 0;
+                    for (; indexGroup < withFaces.size(); indexGroup++) {
+                        double compare = comparePicture(thePictures.get(indexPicture).getEmbedingVec().get(indexFace),
+                                                        thePictures.get(withFaces.get(indexGroup).get(0).first).getEmbedingVec().get(withFaces.get(indexGroup).get(0).second));
+                        if (compare < 0.5) {
+                            push(withFaces, indexGroup, indexPicture, indexFace);
+                            break;
+                        }
+                    }
+                    if (indexGroup == withFaces.size()) {
+                        push(withFaces, indexGroup, indexPicture, indexFace);
+                    }
                 }
-            }
-            if (j == Sorted.size()) {
-                push (embiddingMass.get(k), bitK, Sorted, j, k);
+            } else {
+                withoutFaces.add(indexPicture);
             }
         }
-        return Sorted;
-
+        return new Pair<>(withFaces, withoutFaces);
     }
 
 
-    private double comparePicture(float[] ff1, float[] ff2) {
+    private double comparePicture(Float[] ff1, Float[] ff2) {
         double diff = 0;
         //compare picture using L2
         for (int i = 0; i < 128; i++) {
@@ -73,10 +74,11 @@ public class PictureHelp {
         return Math.sqrt(diff);
     }
 
-    private void push(float[] ff, Bitmap image, ArrayList<ArrayList<Pair<Integer,float[]>>> sorted, int j, int indexPic) {
-        if (j == sorted.size()) {
-            sorted.add(new ArrayList<Pair<Integer, float[]>> ());
+    private void push( ArrayList<ArrayList<Pair<Integer, Integer>>> sorted, int indexGroup, int indexPic, int indexFaces) {
+
+        if (indexGroup == sorted.size()) {
+            sorted.add( new ArrayList<Pair<Integer, Integer>>());
         }
-        sorted.get(j).add(new Pair<>(indexPic, ff));
+        sorted.get(indexGroup).add(new Pair<>(indexPic, indexFaces));
     }
 }
