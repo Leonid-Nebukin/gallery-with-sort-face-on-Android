@@ -1,17 +1,10 @@
 package com.FaceRecognition;
 
-import android.content.Context;
-
-import com.Picture.Picture;
-
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.FileWriter;
-import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -20,11 +13,10 @@ import java.util.Map;
 
 public class InternalFileBackground {
     private File file;
-    Context context;
-    public InternalFileBackground (String fileName, Context context) {
-        this.context = context;
-        File internalStorageDir = context.getFilesDir();
-        file = new File(internalStorageDir, fileName);
+    private File internalDir;
+    public InternalFileBackground (String fileName, File Dir) {
+        internalDir = Dir;
+        file = new File(Dir, fileName);
     }
 
 
@@ -62,7 +54,7 @@ public class InternalFileBackground {
             writer.println();
             writer.close();
         } catch (Exception e) {
-            e  .printStackTrace();
+            e .printStackTrace();
         }
     }
 
@@ -71,8 +63,7 @@ public class InternalFileBackground {
             FileInputStream fos = new FileInputStream(file);
             BufferedReader br = new BufferedReader(new InputStreamReader(fos));
 
-            File internalStorageDir = context.getFilesDir();
-            File tempFile = new File(internalStorageDir, "myTempFile.txt");
+            File tempFile = new File(internalDir, "myTempFile.txt");
             tempFile.createNewFile();
 
             PrintWriter writer = new PrintWriter(new BufferedWriter(new FileWriter(tempFile)));

@@ -5,7 +5,6 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.provider.MediaStore;
 
-import java.util.ArrayList;
 
 public class ImagePathProvider {
     public ImagePathProvider(){}

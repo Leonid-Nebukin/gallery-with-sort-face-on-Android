@@ -24,4 +24,8 @@ xmlns:app="http://schemas.android.com/apk/res-auto">
         android:id="@+id/sort_by_date"
         android:title="@string/sort_by_date"
         app:showAsAction="never" />
+    <item
+        android:id="@+id/random_sort"
+        android:title="@string/random_sort"
+        app:showAsAction="never" />
 </menu>

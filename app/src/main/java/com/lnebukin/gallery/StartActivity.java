@@ -1,16 +1,9 @@
 package com.lnebukin.gallery;
 
 import android.Manifest;
-import android.content.ContentResolver;
-import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.database.Cursor;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
@@ -26,6 +19,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Toast;
 
+import com.FaceNetService;
 import com.FaceRecognition.BackgroundEmbiding;
 import com.Picture.ImagePathProvider;
 import com.Picture.Picture;
@@ -34,16 +28,14 @@ import com.Picture.SearchPicture;
 import com.Picture.SortPicture;
 
 import java.io.File;
-import java.io.IOException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
+import java.util.Collections;
 
 public class StartActivity extends AppCompatActivity {
     private final int PERMISSION_REQUEST_CODE = 1;
     final int Columns = 5;
-    ArrayList<Picture> myPicMass = new ArrayList<>();
-    PictureAdapter pictureAdapter = new PictureAdapter(this, myPicMass);
+    ArrayList<Picture> myPicMass;
+    PictureAdapter pictureAdapter;
     RecyclerView gridView;
     String mCurrentPhotoPath;
 
@@ -59,11 +51,13 @@ public class StartActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
 
         gridView = findViewById(R.id.recyclerview);
+        myPicMass = new ArrayList<>();
+        pictureAdapter = new PictureAdapter(this, myPicMass);
     }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
-        if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+        if (grantResults[0] == PackageManager.PERMISSION_GRANTED && mCurrentPhotoPath == null) {
 
             GridLayoutManager mGridLayoutManager = new GridLayoutManager(this, Columns);
             gridView.setLayoutManager(mGridLayoutManager);
@@ -77,18 +71,21 @@ public class StartActivity extends AppCompatActivity {
             int widthCeil = displaymetrics.widthPixels / Columns;
 
             //search pic in async
-            SearchPicture searchPicture = new SearchPicture(pictureAdapter, gridView,  widthCeil);
+            SearchPicture searchPicture = new SearchPicture(pictureAdapter, gridView, widthCeil);
             searchPicture.execute(myPaths);
 
-            File internalStorageDir = getFilesDir();
-            File alice = new File(internalStorageDir, "embiding.csv");
-            if (!alice.isFile()) {
-                BackgroundEmbiding backgroundEmbiding = new BackgroundEmbiding(getAssets(), this);
-                backgroundEmbiding.execute(myPaths);
-            }
+            Intent intent = new Intent(this, FaceNetService.class);
+            intent.putExtra("Picture", myPaths);
+            startService(intent);
+
         } else {
-            Toast.makeText(StartActivity.this,
-                    "Permission denied", Toast.LENGTH_LONG).show();
+            if (grantResults.length == 2) {
+                if (grantResults[1] == PackageManager.PERMISSION_GRANTED) {
+                }
+            } else {
+                Toast.makeText(StartActivity.this,
+                        "Permission denied", Toast.LENGTH_LONG).show();
+            }
         }
     }
 
@@ -101,30 +98,20 @@ public class StartActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         if(item.getItemId() == R.id.sort_by_face) {
-            final long startTime = System.currentTimeMillis();
-
             SortPicture sortPicture = new SortPicture();
-            sortPicture.onSortFaceClick(myPicMass, getAssets(), getApplicationContext());
-
-            gridView.setAdapter(pictureAdapter);
-
-            long stopTime = System.currentTimeMillis();
-            long elapsedTime = stopTime - startTime;
-            Toast toast = Toast.makeText(StartActivity.this, Long.toString(elapsedTime), Toast.LENGTH_LONG);
-            toast.show();
+            sortPicture.onSortFaceClick(myPicMass, getAssets(), getFilesDir());
         } else if (item.getItemId() == R.id.sort_by_name) {
             SortPicture sortPicture = new SortPicture();
             sortPicture.onSortNameClick(myPicMass);
-
-            gridView.setAdapter(pictureAdapter);
         } else if (item.getItemId() == R.id.sort_by_date) {
             SortPicture sortPicture = new SortPicture();
             sortPicture.onSortDateClick(myPicMass);
-
-            gridView.setAdapter(pictureAdapter);
         } else if (item.getItemId() == R.id.camera) {
             takePhoto();
+        } else if (item.getItemId() == R.id.random_sort) {
+            Collections.shuffle(myPicMass);
         }
+        gridView.setAdapter(pictureAdapter);
         return true;
     }
 
@@ -132,15 +119,12 @@ public class StartActivity extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent intent) {
         if (requestCode == 1 && resultCode == RESULT_OK)
         {
-            Bitmap bit = BitmapFactory.decodeFile(mCurrentPhotoPath);
-            Picture pic = new Picture (mCurrentPhotoPath, Bitmap.createScaledBitmap(bit, 216, 216, false));
+            Picture pic = new Picture (mCurrentPhotoPath, 216);
             myPicMass.add(pic);
             AddPicToMediaStore();
             //compute vecEmbeeding
-            BackgroundEmbiding backgroundEmbiding = new BackgroundEmbiding(getAssets(), this);
+            BackgroundEmbiding backgroundEmbiding = new BackgroundEmbiding(getAssets(), getFilesDir());
             backgroundEmbiding.execute(mCurrentPhotoPath);
-            //update recyclerview
-            gridView.setAdapter(pictureAdapter);
         }
     }
 
@@ -165,13 +149,14 @@ public class StartActivity extends AppCompatActivity {
         return file;
     }
 
-    Uri uri;
+
     private void takePhoto() {
+
         ActivityCompat.requestPermissions(this, new String[] {Manifest.permission.WRITE_EXTERNAL_STORAGE,
                                                                       Manifest.permission.CAMERA}, PERMISSION_REQUEST_CODE);
 
         Intent intent = new Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE);
-
+        Uri uri = null;
         try {
             uri = FileProvider.getUriForFile(StartActivity.this,  "com.lnebukin.gallery.file", generateFile());
         } catch (Exception e) {

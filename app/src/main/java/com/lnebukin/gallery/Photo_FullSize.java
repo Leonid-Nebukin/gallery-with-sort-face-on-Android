@@ -1,8 +1,6 @@
 package com.lnebukin.gallery;
 
 import android.Manifest;
-import android.annotation.SuppressLint;
-import android.annotation.TargetApi;
 import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.Context;
@@ -14,56 +12,30 @@ import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.graphics.RectF;
 import android.graphics.drawable.BitmapDrawable;
 import android.net.Uri;
-import android.os.Build;
 import android.provider.MediaStore;
 import android.support.annotation.NonNull;
-import android.support.annotation.RequiresApi;
 import android.support.v4.app.ActivityCompat;
-import android.support.v4.app.Fragment;
-import android.support.v4.app.FragmentManager;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.support.v7.widget.Toolbar;
-import android.util.SparseArray;
-import android.view.Menu;
-import android.view.MenuItem;
-import android.view.MotionEvent;
-import android.view.View;
-import android.widget.GridView;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
-import android.widget.RelativeLayout;
 import android.widget.Toast;
 
 import com.FaceRecognition.InternalFileBackground;
 import com.Picture.Picture;
-import com.Picture.PictureAdapter;
-import com.google.android.gms.common.data.BitmapTeleporter;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
-import com.google.android.gms.vision.Frame;
-import com.google.android.gms.vision.face.Face;
-import com.google.android.gms.vision.face.FaceDetector;
 import com.google.firebase.ml.vision.FirebaseVision;
 import com.google.firebase.ml.vision.common.FirebaseVisionImage;
 import com.google.firebase.ml.vision.face.FirebaseVisionFace;
 import com.google.firebase.ml.vision.face.FirebaseVisionFaceDetector;
 
 import java.io.File;
-import java.io.IOException;
-import java.net.URI;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.attribute.BasicFileAttributes;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
-import java.util.stream.Stream;
 
 import uk.co.senab.photoview.PhotoView;
 
@@ -106,8 +78,8 @@ public class Photo_FullSize extends AppCompatActivity implements FragmBut.OnSele
         BitmapDrawable drawable = (BitmapDrawable) imageView.getDrawable();
         final Bitmap bitmap = drawable.getBitmap();
 
-        FirebaseVisionFaceDetector detector1 = FirebaseVision.getInstance().getVisionFaceDetector();
-        detector1.detectInImage(FirebaseVisionImage.fromBitmap(bitmap)).addOnCompleteListener(new OnCompleteListener<List<FirebaseVisionFace>>() {
+        FirebaseVisionFaceDetector detector = FirebaseVision.getInstance().getVisionFaceDetector();
+        detector.detectInImage(FirebaseVisionImage.fromBitmap(bitmap)).addOnCompleteListener(new OnCompleteListener<List<FirebaseVisionFace>>() {
             @Override
             public void onComplete(@NonNull Task<List<FirebaseVisionFace>> task) {
                 Bitmap markedBitMAp = (bitmap).copy(Bitmap.Config.RGB_565, true);
@@ -152,7 +124,7 @@ public class Photo_FullSize extends AppCompatActivity implements FragmBut.OnSele
                 }
                 c.close();
 
-                InternalFileBackground internalFileBackground = new InternalFileBackground("embiding.csv", context);
+                InternalFileBackground internalFileBackground = new InternalFileBackground("embiding.csv", getFilesDir());
                 internalFileBackground.DeletePicture(picture.getMyPath());
 
                 Intent intent = new Intent(Photo_FullSize.this, StartActivity.class);

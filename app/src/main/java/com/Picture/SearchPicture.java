@@ -23,8 +23,7 @@ public class SearchPicture extends AsyncTask<String, Picture, Void> {
     protected Void doInBackground(String... myPaths) {
         //Adding pic
         for (String path : myPaths) {
-            PictureHelp pictureHelp = new PictureHelp();
-            Picture pic = new Picture(path, pictureHelp.decodeScaledFile(path, widthceil));
+            Picture pic = new Picture(path, widthceil);
             mypictureAdapter.addNewValues(pic);
             if (mypictureAdapter.getItemCount() % 35 == 0) {
                 publishProgress(pic);
